@@ -1,4 +1,4 @@
-# NettyProtobufDemo
+# NettyChatDemo
 
 基于 **Netty** + **Protobuf** 的简易聊天 Demo：客户端连接服务端后，可在控制台输入文本；服务端按消息类型路由处理并回包。
 
@@ -6,11 +6,11 @@
 
 ## 环境要求
 
-| 依赖 | 建议版本 |
-|------|----------|
-| JDK | 17+（开发环境为 JDK 21） |
-| Maven | 3.8+（开发环境为 3.9） |
-| 网络 | 首次构建需能访问 Maven 中央仓库（下载 Netty / Protobuf / protoc） |
+| 依赖    | 建议版本                                              |
+| ----- | ------------------------------------------------- |
+| JDK   | 8+（开发环境为 JDK 21）                                  |
+| Maven | 3.8+（开发环境为 3.9）                                   |
+| 网络    | 首次构建需能访问 Maven 中央仓库（下载 Netty / Protobuf / protoc） |
 
 无需单独安装 `protoc`：`protobuf-maven-plugin` + `os-maven-plugin` 会在构建时自动下载对应平台的 protoc，并生成 Java 代码到 `target/generated-sources/protobuf/java/`。
 
@@ -19,8 +19,8 @@
 ### 1. 克隆并编译
 
 ```bash
-git clone <你的仓库地址>.git
-cd NettyProtobufDemo
+git clone git@github.com:wdytoya/netty-chat-demo.git
+cd netty-chat-demo
 mvn compile
 ```
 
@@ -69,21 +69,21 @@ this is connect message...
 
 ## 行为说明
 
-| 项目 | 说明 |
-|------|------|
-| 端口 | `6666`（`ChatServer` 绑定；`ChatClient` 连接 `localhost`） |
-| 粘包/拆包 | 帧格式为 `4 字节大端长度 + Protobuf 二进制`（`LengthFieldBasedFrameDecoder` + 自定义 Encoder/Decoder） |
-| 消息定义 | `src/main/proto/ChatMsg.proto`（proto2） |
-| 请求处理 | `MSG_TYPE_REQUEST` → `RequestMessageResolver` → 回 `MSG_TYPE_RESPONSE` |
-| Ping 处理 | `MSG_TYPE_PING` → `PingMessageResolver` → 回 `MSG_TYPE_PONG` |
-| 服务端空闲 | `IdleStateHandler(10, 0, 0)`：约 **10 秒** 无读事件会断开该客户端 |
+| 项目      | 说明                                                                                   |
+| ------- | ------------------------------------------------------------------------------------ |
+| 端口      | `6666`（`ChatServer` 绑定；`ChatClient` 连接 `localhost`）                                  |
+| 粘包/拆包   | 帧格式为 `4 字节大端长度 + Protobuf 二进制`（`LengthFieldBasedFrameDecoder` + 自定义 Encoder/Decoder） |
+| 消息定义    | `src/main/proto/ChatMsg.proto`（proto2）                                               |
+| 请求处理    | `MSG_TYPE_REQUEST` → `RequestMessageResolver` → 回 `MSG_TYPE_RESPONSE`                |
+| Ping 处理 | `MSG_TYPE_PING` → `PingMessageResolver` → 回 `MSG_TYPE_PONG`                          |
+| 服务端空闲   | `IdleStateHandler(10, 0, 0)`：约 **10 秒** 无读事件会断开该客户端                                  |
 
 > 当前客户端 Pipeline 中的 `IdleStateHandler(0, 0, 0)` 未开启写空闲，因此客户端侧自动 Ping 逻辑默认不会触发；服务端的 Ping/Pong 解析器仍保留，便于后续扩展心跳。
 
 ## 工程结构
 
 ```text
-NettyProtobufDemo/
+netty-chat-demo/
 ├── pom.xml
 ├── README.md
 ├── .gitignore
@@ -109,18 +109,18 @@ NettyProtobufDemo/
 
 ## 协议字段（ChatMsg）
 
-| 字段 | 含义 |
-|------|------|
-| `server_*_ver` | 服务端版本号（Demo 中固定写入） |
-| `session_id` | 会话 ID（工厂内 `UUID` 生成） |
-| `msg_type` | `REQUEST` / `RESPONSE` / `PING` / `PONG` / `EMPTY` |
-| `msg_len` | 正文 UTF-8 字节长度 |
-| `msg_body` | 文本正文 |
+| 字段             | 含义                                                 |
+| -------------- | -------------------------------------------------- |
+| `server_*_ver` | 服务端版本号（Demo 中固定写入）                                 |
+| `session_id`   | 会话 ID（工厂内 `UUID` 生成）                               |
+| `msg_type`     | `REQUEST` / `RESPONSE` / `PING` / `PONG` / `EMPTY` |
+| `msg_len`      | 正文 UTF-8 字节长度                                      |
+| `msg_body`     | 文本正文                                               |
 
 ## 常见问题
 
 **1. `mvn compile` 失败 / 下载依赖超时**  
-检查网络与 Maven 镜像。国内可配置阿里云等中央仓库镜像后重试。
+检查网络与 Maven 镜像。中国国内可配置阿里云等中央仓库镜像后重试。
 
 **2. 找不到 `org.example.demo.protos.ChatMsg`**  
 说明 Protobuf 尚未生成。在项目根目录执行 `mvn compile`，确认存在  
@@ -147,4 +147,4 @@ mvn -q org.codehaus.mojo:exec-maven-plugin:3.5.1:java "-Dexec.mainClass=org.exam
 
 ## License
 
-未单独指定许可证时，默认按仓库所有者声明为准。公开分享前请自行补充 `LICENSE`。
+MIT © 2026 wdytoya
