@@ -1,0 +1,74 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.example</groupId>
+  <artifactId>NettyProtobufDemo</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>NettyProtobufDemo</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <protobuf.version>4.36.1</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>4.2.17.Final</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- 运行时 jar，提供 GeneratedMessageV3 / ByteString / CodedOutputStream 等 -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>${protobuf.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <extensions>
+      <!-- 用于探测当前操作系统，让 protobuf-maven-plugin 在 ${os.detected.classifier} 处自动选 protoc 二进制 -->
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.7.1</version>
+      </extension>
+    </extensions>
+    <plugins>
+      <!-- google 早期官方 plugin，最高版本 0.6.1（2018），但能稳定支撑到 protobuf 4.36.x -->
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>0.6.1</version>
+        <configuration>
+          <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+          <!-- 生成代码默认输出到 target/generated-sources/protobuf/java/，Maven 会自动加进 compile path -->
+          <outputDirectory>${project.build.directory}/generated-sources/protobuf/java</outputDirectory>
+          <!-- 多次构建不清空（保证你之前合法生成的代码不会被误删；true 反而会清空 plugin 输出目录外的 src/main/java 残留）-->
+          <clearOutputDirectory>false</clearOutputDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <!-- 与 mvn compile 同步触发 protoc -->
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
