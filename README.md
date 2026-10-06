@@ -1,149 +1,125 @@
-# NettyChatDemo
+# ChatRoomDemo
 
-基于 **Netty** + **Protobuf** 的简易聊天 Demo：客户端连接服务端后，可在控制台输入文本；服务端按消息类型路由处理并回包。
+> **Note for non-Chinese readers:** The rest of this document is written in Chinese. For easier understanding, please use an AI tool to translate the content below into your native language before following the instructions.
 
-适合用来理解：长度字段拆包、Protobuf 编解码、Idle 心跳/超时、以及按 `MsgType` 分发的 Resolver 模式。
+基于 **Netty** + **Protobuf** 的房间群聊 Demo：统一 Envelope 帧编解码，Chat / Room 领域拆分，支持登录占名、房间创建/加入、群聊广播、心跳踢人、离线通知与断线后手动重连 / 回房。
 
 ## 环境要求
 
-| 依赖    | 建议版本                                              |
-| ----- | ------------------------------------------------- |
-| JDK   | 8+（开发环境为 JDK 21）                                  |
-| Maven | 3.8+（开发环境为 3.9）                                   |
-| 网络    | 首次构建需能访问 Maven 中央仓库（下载 Netty / Protobuf / protoc） |
+| 依赖 | 建议版本 |
+|------|----------|
+| JDK | 8+（开发环境可为 JDK 21） |
+| Maven | 3.8+ |
+| 网络 | 首次构建需能访问 Maven 中央仓库 |
 
-无需单独安装 `protoc`：`protobuf-maven-plugin` + `os-maven-plugin` 会在构建时自动下载对应平台的 protoc，并生成 Java 代码到 `target/generated-sources/protobuf/java/`。
+无需单独安装 `protoc`：`protobuf-maven-plugin` + `os-maven-plugin` 会在构建时自动下载。
 
 ## 快速开始
 
-### 1. 克隆并编译
+### 1. 编译
 
 ```bash
-git clone git@github.com:wdytoya/netty-chat-demo.git
-cd netty-chat-demo
 mvn compile
 ```
 
-编译成功即表示 Protobuf 已生成且源码已编译。
-
 ### 2. 启动服务端
-
-**先开一个终端**，在项目根目录执行：
-
-```bash
-mvn -q org.codehaus.mojo:exec-maven-plugin:3.5.1:java -Dexec.mainClass=org.example.ChatServer -Dexec.classpathScope=compile
-```
-
-看到如下日志表示监听成功：
-
-```text
-ChatServer started on 6666, waiting for clients...
-```
-
-默认绑定：`0.0.0.0:6666`。
-
-### 3. 启动客户端
-
-**再开一个终端**（服务端保持运行）：
-
-```bash
-mvn -q org.codehaus.mojo:exec-maven-plugin:3.5.1:java -Dexec.mainClass=org.example.ChatClient -Dexec.classpathScope=compile
-```
-
-客户端会连接 `localhost:6666`，并在连接成功后自动发送一条：
-
-```text
-this is connect message...
-```
-
-之后可在客户端控制台直接输入文本并回车，消息会以 `MSG_TYPE_REQUEST` 发给服务端。
-
-### 4. 预期现象
-
-- **服务端**：打印收到的 `sessionId`、消息类型、正文，并回 `MSG_TYPE_RESPONSE`（内容形如 `Confirmed your message <sessionId> ...`）。
-- **客户端**：打印服务端回包的 Protobuf 对象字符串。
-
-结束方式：在对应终端按 `Ctrl+C`。建议先停客户端，再停服务端。
-
-> **IDE 运行**：在 IntelliJ IDEA / Eclipse 中分别运行 `org.example.ChatServer` 与 `org.example.ChatClient` 的 `main` 方法即可，效果相同。记得先执行一次 Maven `compile` / `generate-sources`，确保 Protobuf 生成类存在。
-
-## 行为说明
-
-| 项目      | 说明                                                                                   |
-| ------- | ------------------------------------------------------------------------------------ |
-| 端口      | `6666`（`ChatServer` 绑定；`ChatClient` 连接 `localhost`）                                  |
-| 粘包/拆包   | 帧格式为 `4 字节大端长度 + Protobuf 二进制`（`LengthFieldBasedFrameDecoder` + 自定义 Encoder/Decoder） |
-| 消息定义    | `src/main/proto/ChatMsg.proto`（proto2）                                               |
-| 请求处理    | `MSG_TYPE_REQUEST` → `RequestMessageResolver` → 回 `MSG_TYPE_RESPONSE`                |
-| Ping 处理 | `MSG_TYPE_PING` → `PingMessageResolver` → 回 `MSG_TYPE_PONG`                          |
-| 服务端空闲   | `IdleStateHandler(10, 0, 0)`：约 **10 秒** 无读事件会断开该客户端                                  |
-
-> 当前客户端 Pipeline 中的 `IdleStateHandler(0, 0, 0)` 未开启写空闲，因此客户端侧自动 Ping 逻辑默认不会触发；服务端的 Ping/Pong 解析器仍保留，便于后续扩展心跳。
-
-## 工程结构
-
-```text
-netty-chat-demo/
-├── pom.xml
-├── README.md
-├── .gitignore
-└── src/
-    ├── main/
-    │   ├── java/org/example/
-    │   │   ├── ChatServer.java              # 服务端入口
-    │   │   ├── ChatClient.java              # 客户端入口（控制台发消息）
-    │   │   ├── ChatServerHandler.java       # 服务端业务 + 读空闲踢人
-    │   │   ├── ChatClientHandler.java       # 客户端收包 / 连接首包
-    │   │   ├── ChatMsgEncoder.java          # 长度前缀 + Protobuf 编码
-    │   │   ├── ChatMsgDecoder.java          # Protobuf 解码
-    │   │   ├── ChatMsgFactory.java          # 构造 ChatMsg（含 UUID sessionId）
-    │   │   ├── MessageResolverFactory.java  # 按类型查找 Resolver
-    │   │   ├── Resolver.java
-    │   │   ├── RequestMessageResolver.java
-    │   │   └── PingMessageResolver.java
-    │   └── proto/
-    │       └── ChatMsg.proto                # 协议定义
-    └── test/java/org/example/
-        └── AppTest.java
-```
-
-## 协议字段（ChatMsg）
-
-| 字段             | 含义                                                 |
-| -------------- | -------------------------------------------------- |
-| `server_*_ver` | 服务端版本号（Demo 中固定写入）                                 |
-| `session_id`   | 会话 ID（工厂内 `UUID` 生成）                               |
-| `msg_type`     | `REQUEST` / `RESPONSE` / `PING` / `PONG` / `EMPTY` |
-| `msg_len`      | 正文 UTF-8 字节长度                                      |
-| `msg_body`     | 文本正文                                               |
-
-## 常见问题
-
-**1. `mvn compile` 失败 / 下载依赖超时**  
-检查网络与 Maven 镜像。中国国内可配置阿里云等中央仓库镜像后重试。
-
-**2. 找不到 `org.example.demo.protos.ChatMsg`**  
-说明 Protobuf 尚未生成。在项目根目录执行 `mvn compile`，确认存在  
-`target/generated-sources/protobuf/java/org/example/demo/protos/`。
-
-**3. 客户端连不上**  
-确认服务端已启动且控制台出现 `ChatServer started on 6666`；本机防火墙未拦截；端口 `6666` 未被占用。
-
-**4. 连接一会后被断开**  
-服务端读空闲约 10 秒会主动关闭连接。保持在客户端持续发消息，或按需调大 `ChatServer` 中 `IdleStateHandler` 的读空闲时间。
-
-**5. Windows PowerShell 传参注意**  
-若 `-Dexec.mainClass=...` 被拆开，可改为：
 
 ```powershell
 mvn -q org.codehaus.mojo:exec-maven-plugin:3.5.1:java "-Dexec.mainClass=org.example.ChatServer" "-Dexec.classpathScope=compile"
 ```
 
-## 技术栈
+看到：
 
-- Netty `4.2.17.Final`
-- Protobuf Java `4.36.1`（`protobuf-maven-plugin` 0.6.1）
-- JUnit 3（仅测试脚手架，非 Demo 主流程）
+```text
+ChatServer started on 6666, reader idle=60s
+```
+
+### 3. 启动客户端（多开几个终端）
+
+```powershell
+mvn -q org.codehaus.mojo:exec-maven-plugin:3.5.1:java "-Dexec.mainClass=org.example.ChatClient" "-Dexec.classpathScope=compile"
+```
+
+连接成功后自动发送 `CLIENT_HELLO`；服务端签发 `clientId` + `reconnectToken`，客户端进程内缓存。**不会自动重连**，断线后需手动输入 `reconnect`。
+
+也可在 IDE 中分别运行 `ChatServer` / `ChatClient`（多开几个 Client 配置即可）。
+
+## 客户端命令
+
+```text
+login <username>
+create <room> <password>
+list
+join <room> <password>
+msg <text>
+leave
+reconnect
+rejoin
+noping / pingon
+help
+quit
+```
+
+| 命令 | 说明 |
+|------|------|
+| `login` | 连接后先登录；用户名全局唯一（断线宽限内仍占坑） |
+| `create` / `join` | 须已登录且当前不在房；建房即进房 |
+| `msg` | 群聊；发送端乐观本地 echo，服务端向其他人广播 |
+| `reconnect` | 仅断线后可用；HELLO 带回缓存凭证 |
+| `rejoin` | 心跳踢人且服务端下发可回房提示后可用 |
+| `noping` / `pingon` | 关闭/开启客户端自动 PING（测 60s 踢人） |
+| `quit` | 先发 logout 再关连接，并清空本地凭证 |
+
+未知命令会提示；裸文本不会当作聊天发送。房间广播使用 **username**，不对 peer 暴露 `clientId`。
+
+## 行为说明
+
+| 项目 | 说明 |
+|------|------|
+| 端口 | `6666` |
+| 帧格式 | `4 字节大端长度 + Envelope Protobuf` |
+| 协议 | `common.proto` / `chat.proto` / `room.proto` |
+| 分发 | `(Domain, msgType) → Resolver` |
+| 服务端空闲 | 读空闲 **60s** 无完整入站帧 → 心跳踢人 |
+| 客户端心跳 | 写空闲 **20s** 发 PING（滑动续期在线票据） |
+| 身份 | HELLO 签发 `clientId` + `reconnectToken`；在线票据 TTL 5min（PING 续期） |
+| 断线宽限 | 踢人/断线后票据与 username 占坑约 **60s** |
+| 待回房 | **仅心跳踢人**且当时在房、房间仍在时记录，TTL **60s**；须手动 `rejoin` |
+| 密码 | SHA-256 + 随机盐，Base64 存于内存；不落明文、不写日志 |
+| 审计 | 控制台 `[CHAT]` / `[CREATE]` / `[JOIN]` / `[LEAVE]` / `[OFFLINE]` 等 |
+
+## 工程结构
+
+```text
+src/main/java/org/example/
+├── ChatServer.java / ChatClient.java
+├── ChatServerHandler.java / ChatClientHandler.java
+├── codec/          EnvelopeEncoder / Decoder / Factory
+├── config/         ServerConfig
+├── session/        Session / SessionManager / ClientCredential
+├── room/           Room / RoomManager / PasswordHasher / RoomAuditLogger
+├── reconnect/      PendingRejoin / ReconnectStateStore
+└── resolver/
+    ├── Resolver / MessageResolverFactory
+    ├── chat/       Hello / Login / Logout / Ping
+    └── room/       Create / List / Join / Leave / Chat / RejoinConfirm
+
+src/main/proto/
+├── common.proto    Envelope / Domain / ErrorCode
+├── chat.proto      HELLO / LOGIN / LOGOUT / PING
+└── room.proto      房间业务消息
+```
+
+## 建议自测路径
+
+1. **A** `login alice` → `create room1 123`；**B** `login bob` → `join room1 123`；**C** `login carol` → `create room2 456`
+2. A `msg hello` → B 收到 `[room1] alice: hello`，C 收不到
+3. `list` → 看到 room1/room2 与人数，无密码
+4. `join room1 wrong` 失败；再次 `create room1 123` 失败（已存在）
+5. A `noping`，静止约 60s 被踢 → B 收到 `alice is offline`；服务端有 `[KICK]` / `[OFFLINE]`
+6. A 不退出进程，输入 `reconnect` → HELLO 恢复身份；若有提示则 `rejoin` 回房 → B 收到 `alice reconnected`
+7. A `quit` 后同名可立即被他人 `login`（无宽限）；踢人后 60s 内同名仍可能 `Username already taken`
+8. 未入房 `msg xx` → `Send failed: Not in any room`（或本地已不在房）
 
 ## License
 

@@ -10,38 +10,43 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.example.codec.EnvelopeDecoder;
+import org.example.codec.EnvelopeEncoder;
+import org.example.config.ServerConfig;
 
 /**
- * Hello world!
- *
+ * Chat room server entrypoint.
  */
-public class ChatServer
-{
-    public static void main( String[] args ) throws InterruptedException {
+public class ChatServer {
+    public static void main(String[] args) throws InterruptedException {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        try{
+        try {
             ServerBootstrap sbs = new ServerBootstrap();
-            sbs.group(bossGroup,workerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
+            sbs.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4),new IdleStateHandler(10, 0, 0),
-                            new ChatMsgEncoder(), new ChatMsgDecoder(), new ChatServerHandler());
+                        protected void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(
+                                    new LengthFieldBasedFrameDecoder(
+                                            ServerConfig.MAX_FRAME_LENGTH, 0, 4, 0, 4),
+                                    new IdleStateHandler(ServerConfig.READER_IDLE_SECONDS, 0, 0),
+                                    new EnvelopeEncoder(),
+                                    new EnvelopeDecoder(),
+                                    new ChatServerHandler());
                         }
-                    }) .option(ChannelOption.SO_BACKLOG, 128)
+                    })
+                    .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-            // 绑定端口，开始接收进来的连接
-            ChannelFuture f = sbs.bind(6666).sync(); // (7)
-            System.out.println("ChatServer started on 6666, waiting for clients...");
-
-            // 等待服务器  socket 关闭 。
-            // 在这个例子中，这不会发生，但你可以优雅地关闭你的服务器。
+            ChannelFuture f = sbs.bind(ServerConfig.SERVER_PORT).sync();
+            System.out.println("ChatServer started on " + ServerConfig.SERVER_PORT
+                    + ", reader idle=" + ServerConfig.READER_IDLE_SECONDS + "s");
             f.channel().closeFuture().sync();
-        }finally {
+        } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
-
     }
 }

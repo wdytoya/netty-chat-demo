@@ -10,6 +10,14 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+# Compiled
+out/
+*.class
+*.jar
+*.war
+hs_err_pid*
+replay_pid*
+
 # IDE
 .idea/
 *.iml
@@ -22,16 +30,19 @@ buildNumber.properties
 *.swp
 *~
 
+# Cursor / local agent (do not publish)
+.cursor/
+.workbuddy/
+
 # OS
 .DS_Store
 Thumbs.db
 Desktop.ini
 
-# Logs / local env
+# Logs / local env / secrets
 *.log
 .env
 .env.*
 *.local
-
-# AI Agent
-.workbuddy/
+credentials.json
+**/secrets/

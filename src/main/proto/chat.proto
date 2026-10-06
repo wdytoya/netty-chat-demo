@@ -1,0 +1,58 @@
+syntax = "proto2";
+
+package demo;
+
+option java_multiple_files = true;
+option java_package = "org.example.demo.protos";
+option java_outer_classname = "ChatProtos";
+
+enum ChatMsgType {
+  CHAT_MSG_TYPE_UNSPECIFIED = 0;
+  CLIENT_HELLO_REQ = 1;
+  CLIENT_HELLO_RESP = 2;
+  LOGIN_REQ = 3;
+  LOGIN_RESP = 4;
+  LOGOUT_REQ = 5;
+  LOGOUT_RESP = 6;
+  PING = 20;
+  PONG = 21;
+}
+
+message ClientHelloReq {
+  optional string client_id = 1;
+  optional string reconnect_token = 2;
+}
+
+message ClientHelloResp {
+  optional bool success = 1;
+  optional string client_id = 2;
+  optional string reconnect_token = 3;
+  optional string message = 4;
+  optional string username = 5;
+}
+
+message LoginReq {
+  optional string username = 1;
+}
+
+message LoginResp {
+  optional bool success = 1;
+  optional int32 code = 2;
+  optional string message = 3;
+  optional string username = 4;
+}
+
+message LogoutReq {
+}
+
+message LogoutResp {
+  optional bool success = 1;
+  optional string message = 2;
+}
+
+message Ping {
+}
+
+message Pong {
+  optional int64 server_time = 1;
+}

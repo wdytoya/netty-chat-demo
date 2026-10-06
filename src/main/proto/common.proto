@@ -1,0 +1,44 @@
+syntax = "proto2";
+
+package demo;
+
+option java_multiple_files = true;
+option java_package = "org.example.demo.protos";
+option java_outer_classname = "CommonProtos";
+
+enum Domain {
+  DOMAIN_UNSPECIFIED = 0;
+  DOMAIN_CHAT = 1;
+  DOMAIN_ROOM = 2;
+}
+
+message Envelope {
+  optional int32 version = 1;
+  optional string request_id = 2;
+  optional Domain domain = 3;
+  optional int32 msg_type = 4;
+  optional bytes payload = 5;
+}
+
+enum ErrorCode {
+  OK = 0;
+  BAD_REQUEST = 1;
+  ROOM_EXISTS = 2;
+  ROOM_NOT_FOUND = 3;
+  BAD_PASSWORD = 4;
+  ALREADY_IN_ROOM = 5;
+  NOT_IN_ROOM = 6;
+  ROOM_FULL = 7;
+  MSG_TOO_LONG = 8;
+  RECONNECT_EXPIRED = 9;
+  NOT_AUTHENTICATED = 10;
+  NOT_LOGGED_IN = 11;
+  USERNAME_TAKEN = 12;
+  INTERNAL_ERROR = 99;
+}
+
+message ErrorResp {
+  optional int32 code = 1;
+  optional string message = 2;
+  optional string request_id = 3;
+}
