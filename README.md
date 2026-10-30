@@ -1,5 +1,7 @@
 # NettyChatDemo
 
+> **Note for non-Chinese readers:** The rest of this document is written in Chinese. For easier understanding, please use an AI tool to translate the content below into your native language before following the instructions.
+
 基于 **Netty** + **Protobuf** 的简易聊天 Demo：客户端连接服务端后，可在控制台输入文本；服务端按消息类型路由处理并回包。
 
 适合用来理解：长度字段拆包、Protobuf 编解码、Idle 心跳/超时、以及按 `MsgType` 分发的 Resolver 模式。
@@ -12,15 +14,13 @@
 | Maven | 3.8+（开发环境为 3.9）                                   |
 | 网络    | 首次构建需能访问 Maven 中央仓库（下载 Netty / Protobuf / protoc） |
 
-无需单独安装 `protoc`：`protobuf-maven-plugin` + `os-maven-plugin` 会在构建时自动下载对应平台的 protoc，并生成 Java 代码到 `target/generated-sources/protobuf/java/`。
+无需单独安装 `protoc`：`protobuf-maven-plugin` + `os-maven-plugin` 会在构建时自动下载对应平台的 protoc，并生成 Java 代码到 `target/generated-sources/protobuf/java/`，**但请勿将项目clone到中文路径下**。
 
 ## 快速开始
 
-### 1. 克隆并编译
+### 1. 编译
 
 ```bash
-git clone git@github.com:wdytoya/netty-chat-demo.git
-cd netty-chat-demo
 mvn compile
 ```
 
